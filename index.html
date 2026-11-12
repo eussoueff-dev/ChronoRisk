@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChronoRisk: Micromort &amp; Microlife Daily Calculator</title>
+  <meta name="description" content="Educational calculator for short-term accident risk (micromorts) and long-term life expectancy effects of habits (microlives)." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%2322d3ee' stroke-width='3'/%3E%3Cpath d='M16 8v8l5 3' stroke='%2334d399' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'sans-serif'] } } } };
+  </script>
+  <style>
+    body { background: radial-gradient(1200px 600px at 10% -10%, rgba(16,185,129,.12), transparent 60%),
+                        radial-gradient(1000px 600px at 110% 10%, rgba(6,182,212,.10), transparent 60%),
+                        radial-gradient(900px 500px at 50% 120%, rgba(244,63,94,.08), transparent 60%), #05080f; }
+    .glass { background: rgba(15, 23, 42, .55); border: 1px solid rgba(148, 163, 184, .12);
+             backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 10px 30px -12px rgba(0,0,0,.6); }
+    .glass-inner { background: rgba(2, 6, 23, .45); border: 1px solid rgba(148, 163, 184, .10); }
+    .gauge-fill { transition: width .5s cubic-bezier(.22,1,.36,1), left .5s cubic-bezier(.22,1,.36,1), background-color .4s ease; }
+    .fade-num { transition: color .3s ease; }
+    /* Range inputs */
+    input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; width: 100%; height: 22px; }
+    input[type=range]:focus { outline: none; }
+    input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 9999px;
+      background: linear-gradient(to right, var(--fill, #22d3ee) 0%, var(--fill, #22d3ee) var(--pct, 0%), rgba(148,163,184,.2) var(--pct, 0%)); }
+    input[type=range]::-moz-range-track { height: 6px; border-radius: 9999px; background: rgba(148,163,184,.2); }
+    input[type=range]::-moz-range-progress { height: 6px; border-radius: 9999px; background: var(--fill, #22d3ee); }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; margin-top: -6px; width: 18px; height: 18px; border-radius: 9999px;
+      background: #e2e8f0; border: 3px solid var(--fill, #22d3ee); box-shadow: 0 0 0 4px rgba(34,211,238,.12); transition: transform .15s; }
+    input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 9999px; background: #e2e8f0; border: 3px solid var(--fill, #22d3ee); }
+    input[type=range]:active::-webkit-slider-thumb { transform: scale(1.15); }
+    input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(34,211,238,.45); }
+    input[type=number]::-webkit-inner-spin-button { opacity: .4; }
+    details > summary { list-style: none; cursor: pointer; }
+    details > summary::-webkit-details-marker { display: none; }
+    @media (prefers-reduced-motion: reduce) { .gauge-fill, .fade-num { transition: none; } }
+  </style>
+</head>
+<body class="min-h-screen text-slate-200 font-sans antialiased">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">
+          <span class="bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-400 bg-clip-text text-transparent">ChronoRisk</span>
+          <span class="text-slate-300 font-normal">: Micromort &amp; Microlife Daily Calculator</span>
+        </h1>
+        <p class="text-sm text-slate-400 mt-1">Estimate today's acute risk (micromorts) and the long-term life expectancy effect of your habits (microlives).</p>
+      </div>
+      <button id="resetBtn" type="button"
+        class="self-start sm:self-auto inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium bg-rose-500/10 text-rose-300 border border-rose-400/30 hover:bg-rose-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 transition">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        Reset Day
+      </button>
+    </header>
+
+    <!-- Disclaimer -->
+    <div role="note" class="glass rounded-2xl px-4 py-3 text-sm flex gap-3 items-start border-amber-400/30">
+      <svg class="w-5 h-5 text-amber-300 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      <p class="text-slate-300"><strong class="text-amber-200">Educational tool, not medical advice.</strong>
+        All values are population averages from published research. Your individual risk differs with health, genetics, location, behaviour and many other factors.</p>
+    </div>
+
+    <!-- Profile -->
+    <section class="glass rounded-2xl p-4 sm:p-5" aria-labelledby="profileHeading">
+      <h2 id="profileHeading" class="sr-only">Your profile</h2>
+      <div class="grid gap-5 md:grid-cols-[1fr_auto_auto] md:items-center">
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="ageRange" class="text-sm font-medium text-slate-300">Age</label>
+            <div class="flex items-center gap-2">
+              <input id="ageNum" type="number" min="18" max="90" step="0.5" inputmode="decimal" aria-label="Age in years"
+                class="w-20 rounded-lg glass-inner px-2 py-1 text-right text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
+              <span class="text-xs text-slate-500">years</span>
+            </div>
+          </div>
+          <input id="ageRange" type="range" min="18" max="90" step="1" aria-describedby="baselineInfo" />
+          <div class="flex justify-between text-[11px] text-slate-500"><span>18</span><span>90</span></div>
+        </div>
+        <div>
+          <span class="block text-sm font-medium text-slate-300 mb-1" id="sexLabel">Sex</span>
+          <div class="inline-flex rounded-xl glass-inner p-1" role="radiogroup" aria-labelledby="sexLabel" id="sexGroup">
+            <button type="button" role="radio" data-sex="male" class="sex-btn px-3 py-1.5 text-sm rounded-lg transition">Male</button>
+            <button type="button" role="radio" data-sex="female" class="sex-btn px-3 py-1.5 text-sm rounded-lg transition">Female</button>
+            <button type="button" role="radio" data-sex="average" class="sex-btn px-3 py-1.5 text-sm rounded-lg transition">Average</button>
+          </div>
+        </div>
+        <div id="baselineInfo" class="rounded-xl glass-inner px-4 py-2 text-sm min-w-[220px]">
+          <div class="text-slate-400 text-xs">Daily baseline</div>
+          <div class="text-lg font-semibold text-cyan-300 fade-num"><span id="baselineMm">–</span> <span class="text-xs font-normal text-slate-400">µmt/day</span></div>
+          <div class="text-[11px] text-slate-500">q(x) = <span id="baselineQ">–</span> per year · <span id="baselineMethod">–</span></div>
+        </div>
+      </div>
+      <p class="mt-3 text-xs text-slate-400">
+        <strong class="text-slate-300">Note:</strong> the baseline already includes an average person's everyday exposure (normal driving, walking, illness and so on).
+        Only add activity <em>above</em> what is normal for you.
+      </p>
+    </section>
+
+    <!-- KPI cards -->
+    <section class="grid gap-4 md:grid-cols-3" aria-label="Key results">
+      <!-- Survival margin -->
+      <article class="glass rounded-2xl p-5 flex flex-col gap-3" aria-live="polite">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-medium text-slate-400">Survival Margin</h2>
+          <span id="kpiMmBadge" class="rounded-full px-2.5 py-0.5 text-xs font-semibold border">– µmt</span>
+        </div>
+        <div>
+          <div id="kpiSurvival" class="text-2xl sm:text-[1.7rem] font-semibold tabular-nums fade-num break-all">–</div>
+          <div class="text-xs text-slate-400 mt-0.5">chance of surviving today · <span id="kpiOdds" class="text-slate-200">–</span></div>
+        </div>
+        <div>
+          <div class="relative h-2 rounded-full bg-slate-700/50 overflow-hidden" aria-hidden="true">
+            <div id="gaugeRisk" class="gauge-fill absolute inset-y-0 left-0 rounded-full" style="width:0%"></div>
+            <div id="gaugeRiskBase" class="gauge-fill absolute -inset-y-0 w-0.5 bg-slate-200/80" style="left:0%"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>0.1</span><span>1</span><span>10</span><span>100</span><span>1000 µmt</span></div>
+        </div>
+        <div class="text-xs text-slate-400" id="kpiEquiv">–</div>
+      </article>
+
+      <!-- Daily life expectancy shift -->
+      <article class="glass rounded-2xl p-5 flex flex-col gap-3" aria-live="polite">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-medium text-slate-400">Daily Life Expectancy Shift</h2>
+          <span id="kpiMlBadge" class="rounded-full px-2.5 py-0.5 text-xs font-semibold border">– ML</span>
+        </div>
+        <div>
+          <div class="text-2xl sm:text-[1.7rem] font-semibold tabular-nums fade-num"><span id="kpiMinutes">–</span> <span class="text-base font-normal text-slate-400">min/day</span></div>
+          <div class="text-xs text-slate-400 mt-0.5">long-term estimate if today's habits are kept up</div>
+        </div>
+        <div>
+          <div class="relative h-2 rounded-full bg-slate-700/50 overflow-hidden" aria-hidden="true">
+            <div class="absolute inset-y-0 left-1/2 w-px bg-slate-400/60"></div>
+            <div id="gaugeLife" class="gauge-fill absolute inset-y-0 rounded-full" style="left:50%;width:0%"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>−16 ML</span><span>0</span><span>+16 ML</span></div>
+        </div>
+        <div class="text-xs text-slate-400" id="kpiCapNote">1 microlife = 30 minutes of life expectancy.</div>
+      </article>
+
+      <!-- 1-year projection -->
+      <article class="glass rounded-2xl p-5 flex flex-col gap-3" aria-live="polite">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-medium text-slate-400">1-Year Projection</h2>
+          <span id="kpiYearBadge" class="rounded-full px-2.5 py-0.5 text-xs font-semibold border">–</span>
+        </div>
+        <div>
+          <div class="text-2xl sm:text-[1.7rem] font-semibold tabular-nums fade-num"><span id="kpiDays">–</span> <span class="text-base font-normal text-slate-400">days</span></div>
+          <div class="text-xs text-slate-400 mt-0.5" id="kpiYearSub">of life expectancy per year of these habits</div>
+        </div>
+        <div>
+          <div class="relative h-2 rounded-full bg-slate-700/50 overflow-hidden" aria-hidden="true">
+            <div class="absolute inset-y-0 left-1/2 w-px bg-slate-400/60"></div>
+            <div id="gaugeYear" class="gauge-fill absolute inset-y-0 rounded-full" style="left:50%;width:0%"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>−120 d</span><span>0</span><span>+120 d</span></div>
+        </div>
+        <div class="text-xs text-slate-400">Net microlives × 30 min × 365 ÷ 1440. One microlife a day ≈ 7.6 days a year.</div>
+      </article>
+    </section>
+
+    <!-- Two columns -->
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- Acute -->
+      <section class="glass rounded-2xl p-5 space-y-4" aria-labelledby="acuteHeading">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 id="acuteHeading" class="text-lg font-semibold">Acute activities <span class="text-sm font-normal text-slate-400">(micromorts)</span></h2>
+            <p class="text-xs text-slate-400">Short-term risk added to today's baseline. 1 micromort = 1 in a million chance of death.</p>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-xs text-slate-400">Extra today</div>
+            <div class="text-lg font-semibold tabular-nums fade-num" id="acuteExtra">0</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Quick presets</div>
+          <div class="flex flex-wrap gap-2" id="presetBar"></div>
+        </div>
+
+        <div class="rounded-xl glass-inner p-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <label for="presetName" class="text-xs text-slate-400">Save this day as a preset:</label>
+            <input id="presetName" type="text" maxlength="30" placeholder="e.g. Office day"
+              class="flex-1 min-w-[140px] rounded-lg bg-slate-900/60 border border-slate-600/40 px-2 py-1 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
+            <button id="savePresetBtn" type="button" class="rounded-lg px-3 py-1 text-sm bg-cyan-500/15 text-cyan-200 border border-cyan-400/30 hover:bg-cyan-500/25 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400">Save</button>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-2" id="customPresetBar"></div>
+          <p id="presetMsg" class="text-[11px] text-slate-500 mt-1" aria-live="polite">Custom presets store both activities and habits.</p>
+        </div>
+
+        <div class="space-y-3" id="acuteList"></div>
+      </section>
+
+      <!-- Chronic -->
+      <section class="glass rounded-2xl p-5 space-y-4" aria-labelledby="habitHeading">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 id="habitHeading" class="text-lg font-semibold">Daily habits <span class="text-sm font-normal text-slate-400">(microlives)</span></h2>
+            <p class="text-xs text-slate-400">The estimated change in life expectancy <em>if the habit is kept up long term</em>, expressed per day. It is not time you literally gain or lose today.</p>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-xs text-slate-400">Net</div>
+            <div class="text-lg font-semibold tabular-nums fade-num" id="habitNet">0</div>
+          </div>
+        </div>
+        <div class="space-y-3" id="habitList"></div>
+      </section>
+    </div>
+
+    <!-- What-if -->
+    <section class="glass rounded-2xl p-5 space-y-5" aria-labelledby="whatifHeading">
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h2 id="whatifHeading" class="text-lg font-semibold">What if?</h2>
+          <p class="text-xs text-slate-400">A plain-English reading of your day, and a side-by-side comparison with a changed day.</p>
+        </div>
+        <button id="copyToCompareBtn" type="button" class="self-start rounded-lg px-3 py-1.5 text-sm bg-slate-700/40 border border-slate-500/30 hover:bg-slate-700/70 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400" title="The changed day copies your current day and follows it until you edit it">Match changed day to current day</button>
+      </div>
+
+      <div id="explain" class="rounded-xl glass-inner p-4 text-sm leading-relaxed text-slate-300 space-y-2" aria-live="polite"></div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Try a change</div>
+        <div class="flex flex-wrap gap-2" id="tweakBar"></div>
+      </div>
+
+      <div class="grid gap-5 lg:grid-cols-[1fr_1.1fr]">
+        <details class="rounded-xl glass-inner p-4" open>
+          <summary class="flex items-center justify-between text-sm font-medium text-slate-200">
+            <span>Edit the changed day</span>
+            <span class="text-xs text-slate-500">toggle</span>
+          </summary>
+          <div class="mt-3 grid gap-4 sm:grid-cols-2" id="compareEditor"></div>
+        </details>
+
+        <div class="rounded-xl glass-inner p-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <caption class="sr-only">Current day versus changed day</caption>
+            <thead>
+              <tr class="text-xs text-slate-400 text-left">
+                <th scope="col" class="py-2 pr-2 font-medium">Metric</th>
+                <th scope="col" class="py-2 px-2 font-medium text-right">Current day</th>
+                <th scope="col" class="py-2 px-2 font-medium text-right">Changed day</th>
+                <th scope="col" class="py-2 pl-2 font-medium text-right">Difference</th>
+              </tr>
+            </thead>
+            <tbody id="compareBody" class="divide-y divide-slate-700/50 tabular-nums"></tbody>
+          </table>
+          <p id="compareSummary" class="mt-3 text-sm text-slate-300" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sources -->
+    <section class="glass rounded-2xl p-5" aria-labelledby="sourcesHeading">
+      <details>
+        <summary class="flex items-center justify-between">
+          <h2 id="sourcesHeading" class="text-lg font-semibold">Sources and assumptions</h2>
+          <span class="text-xs text-slate-500">show / hide</span>
+        </summary>
+        <div class="mt-4 grid gap-6 md:grid-cols-2 text-sm text-slate-300">
+          <div class="space-y-2">
+            <h3 class="font-medium text-slate-100">Sources</h3>
+            <ul class="list-disc pl-5 space-y-1.5 text-slate-400">
+              <li>Spiegelhalter D. & Blastland M. <em>The Norm Chronicles: Stories and Numbers About Danger</em> (2013). Micromort values for travel and sports.</li>
+              <li>Spiegelhalter D. "Using speed of ageing and 'microlives' to communicate the effects of lifetime habits and environment." <em>BMJ</em> 2012;345:e8223. Microlife values for exercise, diet, smoking, alcohol, sedentary time.</li>
+              <li>Howard R.A. (1980s), decision analysis work that introduced the micromort.</li>
+              <li>U.S. Social Security Administration, Office of the Chief Actuary. <em>Actuarial Life Table</em>, 2021 period life table used in the 2024 Trustees Report. Annual death probability q(x) by sex.</li>
+              <li>Divers Alert Network and US Parachute Association fatality statistics, as summarised in the sources above.</li>
+            </ul>
+          </div>
+          <div class="space-y-2">
+            <h3 class="font-medium text-slate-100">Assumptions</h3>
+            <ul class="list-disc pl-5 space-y-1.5 text-slate-400">
+              <li>Daily baseline = q(x) ÷ 365.25 × 1,000,000 micromorts, with q(x) linearly interpolated between whole ages. "Average" uses the mean of the male and female q(x).</li>
+              <li>If the embedded table is unavailable, q(x) falls back to a Gompertz–Makeham curve, q(x) = A + B·e<sup>c·x</sup>, fitted by log least squares to the same table for ages 18–90 (RMS log error ≈ 10%).</li>
+              <li>Risks are combined as 1 − ∏(1 − p<sub>i</sub>) rather than added, with each unit treated as an independent event.</li>
+              <li>The baseline already contains average everyday exposure, so entering your normal commute would double-count it.</li>
+              <li>Microlives are summed, then a soft cap is applied: the effect is linear up to +6 / −10 per day, then shrinks smoothly toward a ceiling of +10 / −25. Real dose–response curves flatten, and averages for extreme combinations are not reliable.</li>
+              <li>Microlife values describe adults keeping a habit for many years. They are associations from population studies, not guaranteed causal effects.</li>
+              <li>Confidence: <span class="text-emerald-300">High</span> = large, consistent data; <span class="text-sky-300">Medium</span> = reasonable data with notable uncertainty; <span class="text-amber-300">Low</span> = rough or contested estimate.</li>
+            </ul>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <footer class="text-center text-xs text-slate-500 pb-4">
+      ChronoRisk is for education only. Values are population averages, not medical advice; individual risk differs. Your inputs are stored only in this browser (localStorage).
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
